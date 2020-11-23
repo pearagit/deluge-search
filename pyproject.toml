@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deluge-search"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["kintsu <k@kintsu.io>"]
 
