@@ -34,7 +34,9 @@ class DelugeClient:
         if "name" in keys:
             keys.remove("name")
 
-        results = self.rpc.call("core.get_torrents_status", {}, ["name"] + keys)
+        results = self.rpc.call(
+            "core.get_torrents_status", {}, ["name", "save_path"] + keys
+        )
         for id in results:
             torrent_data = {}
             for (key, value) in results[id].items():
@@ -53,12 +55,21 @@ class DelugeClient:
 
         return torrents
 
-    def fuzzy_search(self, query, completed=True) -> Optional[Torrent]:
-        torrents = self.get_torrents(["save_path", "progress"])
+    def filter(self, filter={}):
+        results = []
+        torrents = self.get_torrents(list(filter.keys()))
+        for torrent in torrents:
+            is_match = True
+            for (key, value) in filter.items():
+                is_match = is_match and str(torrent.__dict__[key]) == str(value)
+            if is_match:
+                results.append(torrent)
+        return results
+
+    def fuzzy_search(self, query) -> list[Torrent]:
+        torrents = self.get_torrents(["progress", "label"])
         lines = []
         for torrent in torrents:
-            if completed and torrent.progress != 100.0:
-                continue
             lines.append(f"{torrent.id};;;{torrent.name}")
         search_uuid = uuid.uuid4()
         search_filename = f"/tmp/deluge-search-{search_uuid}.tmp"
@@ -66,20 +77,23 @@ class DelugeClient:
         search_file = open(search_filename, "w")
         search_file.write("\n".join(lines))
         search_file.close()
-        cmd = f'cat {search_filename} | fzf --delimiter=";;;" --with-nth=2.. --query="{query}" > {output_filename}'
+        cmd = f'cat {search_filename} | fzf --multi --delimiter=";;;" --with-nth=2.. --query="{query}" > {output_filename}'
         subprocess.call(cmd, shell=True)
 
         output_file = open(output_filename, "r")
         output = output_file.read()
         os.remove(search_filename)
         os.remove(output_filename)
-        selected_id = output.split(";;;")[0]
 
-        if not selected_id:
-            return None
+        selected_ids = []
+        selected_torrents = []
+        output_lines = output.split("\n")
+        for output_line in output_lines:
+            selected_ids.append(output_line.split(";;;")[0])
 
-        for torrent in torrents:
-            if torrent.id == selected_id:
-                selected_torrent = torrent
+        for selected_id in selected_ids:
+            for torrent in torrents:
+                if torrent.id == selected_id:
+                    selected_torrents.append(torrent)
 
-        return selected_torrent
+        return selected_torrents
