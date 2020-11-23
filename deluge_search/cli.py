@@ -11,56 +11,17 @@ from .ctx import Context
 from .torrent import Torrent
 
 
-@click.group()
-@click.pass_context
-@click.option(
-    "--set-label",
-    default=None,
-    help="set the label of the results",
-)
-@click.option(
-    "--quiet",
-    default=False,
-    help="Don't print the selected torrent",
-)
-def cli(click_ctx, set_label: str, quiet: bool):
-    client = DelugeClient(
-        os.environ.get("DELUGE_RPC_HOST"),
-        int(os.environ.get("DELUGE_RPC_PORT")),
-        os.environ.get("DELUGE_RPC_USERNAME"),
-        os.environ.get("DELUGE_RPC_PASSWORD"),
-    )
-    click_ctx.obj = Context(
-        "deluge-tool",
-        client,
-        {
-            "set_label": set_label,
-            "quiet": quiet,
-        },
-    )
-
-
-@cli.command()
-@click.pass_context
-@click.argument("query", default="")
-def fuzzy(click_ctx, query: str):
-    ctx: Context = click_ctx.obj
-    results = ctx.client.fuzzy_search(query)
-    process_results(ctx, results)
-
-
-@cli.command(epilog="filters in the format of `key=value`")
-@click.pass_context
-@click.argument("filters", nargs=-1)
-def filter(click_ctx, filters: str):
-    ctx: Context = click_ctx.obj
+def search(ctx: Context) -> list[Torrent]:
+    filter_str = ctx.settings["filter_str"]
     filter = {}
-    for filter_str in filters:
-        filter_parts = filter_str.split("=")
-        filter[filter_parts[0]] = filter_parts[1]
-    results = ctx.client.filter(filter)
 
-    process_results(click_ctx, results)
+    if filter_str:
+        filter_list = filter_str.split(";;;")
+        for filter_str in filter_list:
+            filter_parts = filter_str.split("=")
+            filter[filter_parts[0]] = filter_parts[1]
+
+    return ctx.client.search(filter)
 
 
 def process_results(ctx: Context, results: list[Torrent]):
@@ -81,30 +42,15 @@ def process_results(ctx: Context, results: list[Torrent]):
 
 def print_results(ctx: Context, results: list[Torrent]):
     if not ctx.settings["quiet"]:
-        results_json = []
+        result_json = []
         for result in results:
-            results_json.append(result.__dict__)
-        # output_filename = f"/tmp/deluge-search-{uuid.uuid4()}.tmp"
-        # output_file = open(output_filename, "w")
-
-        # output_file.write(json.dumps(results_json))
-        # output_file.close()
-        subprocess.call(f"echo '{json.dumps(results_json)}' | jq .[]", shell=True)
-        # print(shell(f'echo "{json_str}" | jq --indent 2 -C').output())
-        # click.echo(jq.compile(".").input(json_str).text())
-        # click.echo(json.dumps(results_json, indent=2))
-
-    # if not ctx.settings["output"]:
-    #     for result in results:
-    #         result.print()
-    # elif ctx.settings["output"] == "json":
-    #     results_json = []
-    #     for result in results:
-    #         results_json.append(result.__dict__)
-    #     click.echo(json.dumps(results_json, indent=2))
-    # elif ctx.settings["output"] == "paths":
-    #     for result in results:
-    #         click.echo(result.file_path)
+            result_json.append(result.__dict__)
+        tmp_filename = f"/tmp/deluge-search-{uuid.uuid4()}"
+        tmp_file = open(tmp_filename, "w")
+        tmp_file.write(json.dumps(result_json))
+        tmp_file.close()
+        subprocess.call(f"jq . {tmp_filename}", shell=True)
+        os.remove(tmp_filename)
 
 
 def ensure_label(ctx: Context, label: str):
@@ -122,3 +68,58 @@ def set_results_label(ctx: Context, results: list[Torrent], label: str):
         click.echo(f"Applying label `{label}` to {result.name}.")
         ctx.client.rpc.call("label.set_torrent", result.id, label)
     click.echo(f"Label {label} applied.")
+
+
+@click.group()
+@click.pass_context
+@click.option(
+    "--quiet",
+    is_flag=True,
+    default=False,
+    help="Don't print the selected torrent",
+)
+@click.option(
+    "--filter",
+    default="",
+    help="triple semicolon separated list of filter values in the format key=value",
+)
+@click.option(
+    "--set-label",
+    default=None,
+    help="set the label of the results",
+)
+def cli(click_ctx, quiet, filter, set_label: str):
+
+    client = DelugeClient(
+        os.environ.get("DELUGE_RPC_HOST"),
+        int(os.environ.get("DELUGE_RPC_PORT")),
+        os.environ.get("DELUGE_RPC_USERNAME"),
+        os.environ.get("DELUGE_RPC_PASSWORD"),
+    )
+    click_ctx.obj = Context(
+        "deluge-tool",
+        client,
+        {
+            "quiet": quiet,
+            "filter_str": filter,
+            "set_label": set_label,
+        },
+    )
+
+
+@cli.command()
+@click.pass_context
+def list(click_ctx):
+    ctx: Context = click_ctx.obj
+    results = search(ctx)
+    process_results(ctx, results)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("query", default="")
+def fzf(click_ctx, query: str):
+    ctx: Context = click_ctx.obj
+    results = search(ctx)
+    results = ctx.client.fuzzy_select(results, query)
+    process_results(ctx, results)

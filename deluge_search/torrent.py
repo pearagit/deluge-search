@@ -18,9 +18,10 @@ class Torrent:
         for key in torrent_data:
             setattr(self, key, torrent_data[key])
 
-        self.file_path = str(
-            Path(os.path.join(torrent_data["save_path"], torrent_data["name"]))
-        )
+        # self.name = self.name.replace("(", "\\(")
+        # self.name = self.name.replace(")", "\\)")
+
+        self.file_path = str(Path(os.path.join(torrent_data["save_path"], self.name)))
 
     def print(self):
         torrent_data = self.__dict__

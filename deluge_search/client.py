@@ -9,8 +9,19 @@ from deluge_client import DelugeRPCClient
 from .torrent import Torrent
 
 
+def filter_torrent(torrent, filter_dict):
+    torrent_dict = torrent.__dict__
+    for filter_key in filter_dict:
+        filter_value = str(filter_dict[filter_key])
+        torrent_value = str(torrent_dict[filter_key])
+        if torrent_value != filter_value:
+            return False
+    return True
+
+
 class DelugeClient:
     def __init__(self, host="", port=58846, username="", password=""):
+        self.filter = {}
         self.rpc = DelugeRPCClient(
             host,
             port,
@@ -28,18 +39,21 @@ class DelugeClient:
             labels.append(result.decode("utf-8"))
         return labels
 
-    def get_torrents(self, keys=[]) -> list[Torrent]:
-        torrents = []
+    def search(self, filter_dict={}) -> list[Torrent]:
+        results = []
+        keys = ["name", "label", "progress", "save_path"]
+        for filter_key in filter_dict.keys():
+            if not filter_key in keys:
+                keys.append(filter_key)
 
-        if "name" in keys:
-            keys.remove("name")
-
-        results = self.rpc.call(
-            "core.get_torrents_status", {}, ["name", "save_path"] + keys
+        torrents = self.rpc.call(
+            "core.get_torrents_status",
+            {},
+            keys,
         )
-        for id in results:
+        for id in torrents:
             torrent_data = {}
-            for (key, value) in results[id].items():
+            for (key, value) in torrents[id].items():
                 data_key = key.decode("utf-8")
                 data_value = value
 
@@ -50,27 +64,14 @@ class DelugeClient:
 
                 torrent_data[data_key] = data_value
 
-            torrent = Torrent(id, torrent_data)
-            torrents.append(torrent)
+            results.append(Torrent(id, torrent_data))
 
-        return torrents
+        return list(filter(lambda x: filter_torrent(x, filter_dict), results))
 
-    def filter(self, filter={}):
-        results = []
-        torrents = self.get_torrents(list(filter.keys()))
-        for torrent in torrents:
-            is_match = True
-            for (key, value) in filter.items():
-                is_match = is_match and str(torrent.__dict__[key]) == str(value)
-            if is_match:
-                results.append(torrent)
-        return results
-
-    def fuzzy_search(self, query) -> list[Torrent]:
-        torrents = self.get_torrents(["progress", "label"])
+    def fuzzy_select(self, results: list[Torrent], query="") -> list[Torrent]:
         lines = []
-        for torrent in torrents:
-            lines.append(f"{torrent.id};;;{torrent.name}")
+        for result in results:
+            lines.append(f"{result.id};;;{result.name}")
         search_uuid = uuid.uuid4()
         search_filename = f"/tmp/deluge-search-{search_uuid}.tmp"
         output_filename = f"{search_filename}.out"
@@ -92,8 +93,8 @@ class DelugeClient:
             selected_ids.append(output_line.split(";;;")[0])
 
         for selected_id in selected_ids:
-            for torrent in torrents:
-                if torrent.id == selected_id:
-                    selected_torrents.append(torrent)
+            for result in results:
+                if result.id == selected_id:
+                    selected_torrents.append(result)
 
         return selected_torrents
