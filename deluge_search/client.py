@@ -71,14 +71,14 @@ class DelugeClient:
     def fuzzy_select(self, results: list[Torrent], query="") -> list[Torrent]:
         lines = []
         for result in results:
-            lines.append(f"{result.id};;;{result.name}")
+            lines.append(f"{result.id};;;{result.name};;;label: {result.label}")
         search_uuid = uuid.uuid4()
         search_filename = f"/tmp/deluge-search-{search_uuid}.tmp"
         output_filename = f"{search_filename}.out"
         search_file = open(search_filename, "w")
         search_file.write("\n".join(lines))
         search_file.close()
-        cmd = f'cat {search_filename} | fzf --multi --delimiter=";;;" --with-nth=2.. --query="{query}" > {output_filename}'
+        cmd = f'cat {search_filename} | fzf --multi --delimiter=";;;" --with-nth=2.. --nth=1 --query="{query}" > {output_filename}'
         subprocess.call(cmd, shell=True)
 
         output_file = open(output_filename, "r")

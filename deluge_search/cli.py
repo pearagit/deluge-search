@@ -27,7 +27,6 @@ def search(ctx: Context) -> list[Torrent]:
 def process_results(ctx: Context, results: list[Torrent]):
 
     if not len(results):
-        click.echo("Your search did not match any results.")
         exit(1)
 
     print_results(ctx, results)
@@ -109,7 +108,7 @@ def cli(click_ctx, quiet, filter, set_label: str):
 
 @cli.command()
 @click.pass_context
-def list(click_ctx):
+def torrents(click_ctx):
     ctx: Context = click_ctx.obj
     results = search(ctx)
     process_results(ctx, results)
