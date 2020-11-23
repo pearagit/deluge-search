@@ -1,6 +1,7 @@
 import uuid
 import subprocess
 import os
+from typing import Optional
 
 from shell import shell
 from deluge_client import DelugeRPCClient
@@ -10,15 +11,22 @@ from .torrent import Torrent
 
 class DelugeClient:
     def __init__(self, host="", port=58846, username="", password=""):
-        self.client = DelugeRPCClient(
+        self.rpc = DelugeRPCClient(
             host,
             port,
             username,
             password,
         )
-        self.client.connect()
-        if not self.client.connected:
+        self.rpc.connect()
+        if not self.rpc.connected:
             raise RuntimeError("Failed to connect to deluge rpc")
+
+    def get_labels(self):
+        labels = []
+        results = self.rpc.call("label.get_labels")
+        for result in results:
+            labels.append(result.decode("utf-8"))
+        return labels
 
     def get_torrents(self, keys=[]) -> list[Torrent]:
         torrents = []
@@ -26,12 +34,10 @@ class DelugeClient:
         if "name" in keys:
             keys.remove("name")
 
-        torrents_status = self.client.call(
-            "core.get_torrents_status", {}, ["name"] + keys
-        )
-        for id in torrents_status:
+        results = self.rpc.call("core.get_torrents_status", {}, ["name"] + keys)
+        for id in results:
             torrent_data = {}
-            for (key, value) in torrents_status[id].items():
+            for (key, value) in results[id].items():
                 data_key = key.decode("utf-8")
                 data_value = value
 
@@ -47,7 +53,7 @@ class DelugeClient:
 
         return torrents
 
-    def fuzzy_search(self, query, completed=True) -> bool:
+    def fuzzy_search(self, query, completed=True) -> Optional[Torrent]:
         torrents = self.get_torrents(["save_path", "progress"])
         lines = []
         for torrent in torrents:
@@ -70,11 +76,10 @@ class DelugeClient:
         selected_id = output.split(";;;")[0]
 
         if not selected_id:
-            return False
+            return None
 
         for torrent in torrents:
             if torrent.id == selected_id:
                 selected_torrent = torrent
 
-        selected_torrent.print()
-        return True
+        return selected_torrent

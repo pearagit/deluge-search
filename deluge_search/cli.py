@@ -28,9 +28,31 @@ def cli(click_ctx):
     default=True,
     help="only search compeleted torrents",
 )
+@click.option(
+    "--quiet",
+    "quiet",
+    default=False,
+    help="Don't print the selected torrent",
+)
 @click.argument("query", default="")
-def fuzzy(click_ctx, query, completed):
+@click.argument("label", default="")
+def fuzzy(click_ctx, completed, quiet, query, label):
     ctx: Context = click_ctx.obj
-    success = ctx.client.fuzzy_search(query, completed)
-    if not success:
+    torrent = ctx.client.fuzzy_search(query, completed)
+    if not torrent:
         exit(1)
+    if not quiet:
+        torrent.print()
+
+    if not label:
+        return
+
+    labels = ctx.client.get_labels()
+    if label not in labels:
+        if click.confirm(f"Label `{label}` does not exist. Do you want to create it?"):
+            ctx.client.rpc.call("label.add", label)
+        else:
+            click.echo("Exiting without applying label.")
+            exit(1)
+
+    ctx.client.rpc.call("label.set_torrent", torrent.id, label)

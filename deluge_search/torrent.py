@@ -1,3 +1,6 @@
+import click
+
+
 class Torrent:
     def __init__(self, id, torrent_data={}):
         self.id = id.decode("utf-8")
@@ -11,4 +14,4 @@ class Torrent:
     def print(self):
         torrent_data = self.__dict__
         for key in torrent_data:
-            print(f"{key}: {torrent_data[key]}")
+            click.echo(f"{key}: {torrent_data[key]}")

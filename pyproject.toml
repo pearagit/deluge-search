@@ -13,6 +13,7 @@ deluge-client = "^1.9.0"
 click = "^7.1.2"
 iterfzf = "^0.5.0"
 shell = "^1.0.1"
+deluge = "^2.0.3"
 
 
 [tool.poetry.dev-dependencies]
@@ -26,7 +27,10 @@ dephell = "^0.8.3"
 twine = "^3.2.0"
 
 
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.dephell.main]
+from = {format = "poetry", path = "pyproject.toml"}
+to = {format = "setuppy", path = "setup.py"}
