@@ -1,0 +1,11 @@
+session_name: deluge-search
+start_directory: ./
+environment:
+  PROJECT_ROOT: ~/proj/deluge-search
+windows:
+- window_name: terminal
+  panes:
+  - pane
+- window_name: exit
+  panes:
+  - exit

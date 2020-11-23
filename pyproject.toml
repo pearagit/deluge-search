@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "deluge-search"
+version = "0.1.0"
+description = ""
+authors = ["kintsu <k@kintsu.io>"]
+
+[tool.poetry.scripts]
+deluge-search= "deluge_search:cli"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+deluge-client = "^1.9.0"
+click = "^7.1.2"
+iterfzf = "^0.5.0"
+shell = "^1.0.1"
+
+
+[tool.poetry.dev-dependencies]
+black = "^20.8b1"
+rope = "^0.18.0"
+pylint = "^2.6.0"
+neovim = "^0.3.1"
+neovim-remote = "^2.4.0"
+pynvim = "^0.4.2"
+dephell = "^0.8.3"
+twine = "^3.2.0"
+
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
