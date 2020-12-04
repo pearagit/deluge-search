@@ -15,8 +15,8 @@ readme = ''
 setup(
     long_description=readme,
     name='deluge-search',
-    version='0.1.1',
-    python_requires='==3.*,>=3.9.0',
+    version='0.1.2',
+    python_requires='==3.*,>=3.7.0',
     author='kintsu',
     author_email='k@kintsu.io',
     entry_points={"console_scripts": ["deluge-search = deluge_search:cli"]},
