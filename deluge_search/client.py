@@ -46,6 +46,11 @@ class DelugeClient:
             if not filter_key in keys:
                 keys.append(filter_key)
 
+        if "extension" in keys:
+            keys.remove("extension")
+        if "file_path" in keys:
+            keys.remove("file_path")
+
         torrents = self.rpc.call(
             "core.get_torrents_status",
             {},
@@ -98,3 +103,6 @@ class DelugeClient:
                     selected_torrents.append(result)
 
         return selected_torrents
+
+    def move_torrents(self, ids, dest):
+        self.rpc.call("core.move_storage", ids, dest)

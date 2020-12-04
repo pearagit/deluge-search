@@ -5,7 +5,7 @@ environment:
 windows:
 - window_name: terminal
   panes:
-  - pane
+  - poetry shell
 - window_name: exit
   panes:
   - exit

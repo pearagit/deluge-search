@@ -122,3 +122,16 @@ def fzf(click_ctx, query: str):
     results = search(ctx)
     results = ctx.client.fuzzy_select(results, query)
     process_results(ctx, results)
+
+
+@cli.command()
+@click.pass_context
+@click.argument("id_filename")
+@click.argument("dest_dir")
+def move_torrents(click_ctx, id_filename, dest_dir):
+    ctx: Context = click_ctx.obj
+    id_file = open(id_filename, "r")
+    ids = id_file.readlines()
+    ids = list(map(lambda id: id.strip(), ids))
+    id_file.close()
+    ctx.client.move_torrents(ids, dest_dir)

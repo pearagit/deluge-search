@@ -22,6 +22,7 @@ class Torrent:
         # self.name = self.name.replace(")", "\\)")
 
         self.file_path = str(Path(os.path.join(torrent_data["save_path"], self.name)))
+        self.extension = os.path.splitext(self.file_path)[1].replace(".", "")
 
     def print(self):
         torrent_data = self.__dict__

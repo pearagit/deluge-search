@@ -1,0 +1,4 @@
+export DELUGE_RPC_HOST="01.storage.cloud.kintsu.io"
+export DELUGE_RPC_PORT="55733"
+export DELUGE_RPC_USERNAME="user"
+export DELUGE_RPC_PASSWORD="password"
