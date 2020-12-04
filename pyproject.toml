@@ -8,7 +8,7 @@ authors = ["kintsu <k@kintsu.io>"]
 deluge-search= "deluge_search:cli"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 deluge-client = "^1.9.0"
 click = "^7.1.2"
 iterfzf = "^0.5.0"
